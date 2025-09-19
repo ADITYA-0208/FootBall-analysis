@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Processing App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .upload-section {
+            margin-bottom: 2rem;
+            padding: 2rem;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-button:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .upload-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 1rem;
+            transition: all 0.3s ease;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .upload-button.enabled {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .upload-button.enabled:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .status-section {
+            margin: 2rem 0;
+        }
+
+        .status-message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .status-idle { background: #f8f9fa; color: #6c757d; }
+        .status-uploaded { background: #d4edda; color: #155724; }
+        .status-processing { 
+            background: #fff3cd; 
+            color: #856404; 
+            animation: pulse 2s infinite;
+        }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
+        .status-error { background: #f8d7da; color: #721c24; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .video-section {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        video {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .reset-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .reset-button:hover {
+            background: #5a6268;
+        }
+
+        .selected-file {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Video Processing App</h1>
+        
+        <div class="upload-section">
+            <div class="file-input-wrapper">
+                <input type="file" id="videoFile" accept="video/*">
+                <label for="videoFile" class="file-input-button">
+                    📁 Choose Video File
+                </label>
+            </div>
+            <button class="upload-button" id="uploadBtn">🚀 Upload & Process</button>
+            <div class="selected-file" id="selectedFile" style="display: none;"></div>
+        </div>
+
+        <div class="status-section">
+            <div class="loading-spinner" id="loadingSpinner"></div>
+            <div class="status-message status-idle" id="statusMessage">
+                Ready to upload a video file
+            </div>
+        </div>
+
+        <div class="video-section" id="videoSection">
+            <h3>Processed Video</h3>
+            <video id="outputVideo" controls>
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <button class="reset-button" id="resetBtn">🔄 Reset</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('videoFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const videoSection = document.getElementById('videoSection');
+        const outputVideo = document.getElementById('outputVideo');
+        const resetBtn = document.getElementById('resetBtn');
+        const selectedFile = document.getElementById('selectedFile');
+
+        let statusCheckInterval = null;
+
+        // File selection handler
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                uploadBtn.classList.add('enabled');
+                selectedFile.textContent = `Selected: ${file.name}`;
+                selectedFile.style.display = 'block';
+            } else {
+                uploadBtn.classList.remove('enabled');
+                selectedFile.style.display = 'none';
+            }
+        });
+
+        // Upload button handler
+        uploadBtn.addEventListener('click', async function() {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a video file first!');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('video', file);
+
+            try {
+                updateStatus('uploading', '📤 Uploading video...');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    updateStatus('uploaded', '✅ Upload successful! Processing started...');
+                    startStatusPolling();
+                } else {
+                    const error = await response.json();
+                    updateStatus('error', `❌ Upload failed: ${error.error}`);
+                }
+            } catch (error) {
+                updateStatus('error', `❌ Network error: ${error.message}`);
+            }
+        });
+
+        // Reset button handler
+        resetBtn.addEventListener('click', async function() {
+            try {
+                await fetch('/reset');
+                resetUI();
+            } catch (error) {
+                console.error('Reset failed:', error);
+                resetUI(); // Reset UI anyway
+            }
+        });
+
+        function updateStatus(status, message) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${status}`;
+            
+            if (status === 'processing' || status === 'uploading') {
+                loadingSpinner.style.display = 'block';
+            } else {
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        function startStatusPolling() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+
+            statusCheckInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/status');
+                    const data = await response.json();
+                    
+                    switch (data.status) {
+                        case 'uploaded':
+                            updateStatus('uploaded', '✅ Uploaded! Starting processing...');
+                            break;
+                        case 'processing':
+                            updateStatus('processing', '⚙️ Processing video... Please wait...');
+                            break;
+                        case 'completed':
+                            updateStatus('completed', '🎉 Processing completed!');
+                            loadOutputVideo();
+                            clearInterval(statusCheckInterval);
+                            break;
+                        case 'error':
+                            updateStatus('error', `❌ Error: ${data.message}`);
+                            clearInterval(statusCheckInterval);
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Status check failed:', error);
+                }
+            }, 2000); // Check every 2 seconds
+        }
+
+        async function loadOutputVideo() {
+            try {
+                // Add timestamp to avoid caching issues
+                const timestamp = new Date().getTime();
+                outputVideo.src = `/output?t=${timestamp}`;
+                videoSection.style.display = 'block';
+                
+                // Scroll to video section
+                videoSection.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                updateStatus('error', `❌ Failed to load output video: ${error.message}`);
+            }
+        }
+
+        function resetUI() {
+            // Clear intervals
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+            
+            // Reset form
+            fileInput.value = '';
+            uploadBtn.classList.remove('enabled');
+            selectedFile.style.display = 'none';
+            
+            updateStatus('idle', 'Ready to upload a video file');
+            
+            videoSection.style.display = 'none';
+            outputVideo.src = '';
+        }
+
+        // Initial state
+        updateStatus('idle', 'Ready to upload a video file');
+    </script>
+</body>
+</html>
